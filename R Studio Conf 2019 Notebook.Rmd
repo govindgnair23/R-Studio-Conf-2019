@@ -1,0 +1,11 @@
+---
+title: "R Studio Conference 2019"
+output: html_notebook
+---
+
+This is a notebook summarizing what I learned at the R Studio Conference 2019. Snippets of code and links to further resources have also been provided. 
+
+```{r}
+plot(cars)
+```
+
