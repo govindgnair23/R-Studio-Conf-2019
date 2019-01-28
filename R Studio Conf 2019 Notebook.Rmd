@@ -3,9 +3,126 @@ title: "R Studio Conference 2019"
 output: html_notebook
 ---
 
-This is a notebook summarizing what I learned at the R Studio Conference 2019. Snippets of code and links to further resources have also been provided. 
+This is a notebook summarizing what I learned at the R Studio Conference 2019. Snippets of code and links to further resources have also been provided.I am restricting the content here to what is relevant to us at Key given the extent to which we use R. Links to all the talks and slide decks,inlcuding talks on how to use R in production at scale are available at <https://github.com/kbroman/RStudioConf2019Slides>
+
+
+Before stating make sure the following packages have been installed:
+1) reprex
+
+```{r, echo=FALSE,warning=FALSE}
+library(reprex)
+```
+
+
+
+
+## Reproducible Examples with reprex
+
+The reprex package allows you to create a minimal reproducible example that you can share if you are reporting an issue on Github or asking a question on stack overflow. Running the code chunk below will create a new web page with the code and the results that can be shared with others.
+
+```{r,echo=TRUE, results= 'hide'}
+
+reprex({
+  x <- 1:4
+  y <- 2:5
+  x + y
+})
+```
+
+## Categorical data in R
+
+Factor variables in R can be idiosyncratic
 
 ```{r}
-plot(cars)
+x <- c(20,20,10,40,20)
+cat(x)
 ```
+Converting this to a factor variable produces the following
+
+```{r}
+xf <- factor(x)
+xf
+```
+
+Converting this  factor back to numeric produces the following odd result
+
+
+```{r}
+x <- as.numeric(xf)
+x
+```
+
+The right way to catty out this conversion is as follows
+```{r}
+x <- as.numeric(as.character(xf))
+x
+```
+
+
+One also needs to be careful while re-ordering the levels of a factor
+
+```{r}
+ratings1<-  as.factor(c(rep('High',30),rep('Low',10),rep('Medium',20)))
+ratings2 <- ratings1
+ratings3 <- ratings1
+table(ratings1)
+cat('Levels: \n')
+cat(levels(ratings1))
+
+```
+
+We might want to change the levels of this variable to be Low,Medium,High
+
+The next couple of approaches do not yield expected results.
+
+```{r}
+
+levels(ratings1) <- levels(ratings1)[c(2,1,3)]
+table(ratings1)
+
+```
+
+
+```{r}
+levels(ratings2) <- c('Low','Medium','High')
+table(ratings2)
+
+```
+
+
+The correct approach here would be as follows
+
+```{r}
+ratings3 <- factor(ratings3,levels=c('Low','Medium','High'))
+table(ratings3)
+```
+
+The **forcats** package by Hadley Wickham makes working with factors much more straightforward.
+
+```{r}
+library(forcats)
+ratings1<-  as.factor(c(rep('High',30),rep('Low',10),rep('Medium',20)))
+ratings1 <- fct_relevel(ratings1,c('Low','Medium','High'))
+table(ratings1)
+
+```
+
+Recoding the levels of the factors are also straighforward.
+
+```{r}
+ratings1 <- fct_recode(ratings1,Poor='Low',Fair ='Medium',Good = 'High')
+table(ratings1)
+
+```
+
+Plenty of other useful functions are available in the forcats package.
+
+##Defensive Coding
+
+The **testthat** and **assertthat** packages allows us to code defensively. This is typically best practice in software engineering and makes debugging much easier.
+
+
+
+
+
 
