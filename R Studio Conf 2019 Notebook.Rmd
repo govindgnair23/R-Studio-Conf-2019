@@ -1,7 +1,13 @@
 ---
-title: "R Studio Conference 2019"
-output: html_notebook
+title: "R Studio Conference 2019, Austin"
+author: "Govind Nair"
+date: "2/2/2019"
+output: html_document
 ---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 This is a notebook summarizing what I learned at the R Studio Conference 2019. Snippets of code and links to further resources have also been provided.I am restricting the content here to what is relevant to us at Key given the extent to which we use R. Links to all the talks and slide decks,inlcuding talks on how to use R in production at scale are available at <https://github.com/kbroman/RStudioConf2019Slides>
 
@@ -18,15 +24,15 @@ library(reprex)
 
 ## Reproducible Examples with reprex
 
-The reprex package allows you to create a minimal reproducible example that you can share if you are reporting an issue on Github or asking a question on stack overflow. Running the code chunk below will create a new web page with the code and the results that can be shared with others.
+The reprex package allows you to create a minimal reproducible example that you can share if you are reporting an issue on Github or asking a question on stack overflow. Running the code chunk below after uncommenting will create a new web page with the code and the results that can be shared with others.
 
 ```{r,echo=TRUE, results= 'hide'}
 
-reprex({
-  x <- 1:4
-  y <- 2:5
-  x + y
-})
+# reprex({
+#   x <- 1:4
+#   y <- 2:5
+#   x + y
+# })
 ```
 
 ## Categorical data in R
@@ -117,9 +123,172 @@ table(ratings1)
 
 Plenty of other useful functions are available in the forcats package.
 
-##Defensive Coding
+## Defensive Coding
 
 The **testthat** and **assertthat** packages allows us to code defensively. This is typically best practice in software engineering and makes debugging much easier.
+
+For instance if a function is designed to accept a scalar (i.e. a vector of length 1), you may want to
+the function to throw an error if a vector is passed into the function, so that you can adjust the function appropriately.
+
+```{r}
+library(assertthat)
+
+is_odd <- function(x) {
+  assert_that(is.numeric(x), length(x) == 1)
+  x %% 2 == 1
+}
+
+
+print(is_odd(3))
+print(is_odd(2))
+#is_odd(c(1,4)) ##Throws an error##
+
+```
+
+
+The see_if function returns a logical value and an error message as an attribute that allows execution to continue.
+```{r}
+x <- c(1,2)
+y <- 'a'
+see_if(is.numeric(x), length(x) == 1)
+see_if(is.numeric(y), length(y) == 1)
+```
+
+
+The testthat package provides functionality that is essential to software testing. This is useful if you are building packages or writing code that is meant to be used in production
+
+```{r}
+library(testthat)
+
+#Check for equality within numerical toelrance
+expect_that(10,equals(10+1e-7))
+###Check for exact equality - Throws an error
+#expect_that(2*5, is_identical_to(10 + 1e-7))
+model <- lm(mpg~wt,data=mtcars)
+expect_that(model,is_a("lm"))
+###Throws an error
+#expect_that(model,is_a("glm"))
+
+```
+
+If you are making a function you can use this to ensure that it produces warnings when expected.
+
+```{r}
+#  Two functions below pass
+expect_that(log(-1), gives_warning())
+expect_that(log(-1),
+gives_warning("NaNs produced"))
+
+# This one fails if run
+#expect_that(log(0), gives_warning())
+
+
+```
+
+
+## New Features in R Studio 1.2
+
+R Studio 1.2 allows incorporation of SQL, Python , RCPP, Stan etc seamlessly into your workflow. The reticulate package allows you to use Python within R Studio.
+
+### Python
+Note the bit below requires R Studio 1.2 and python's Anaconda installation.
+
+```{r}
+library(reticulate)
+use_condaenv("r-reticulate")
+
+```
+
+```{python}
+
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+x = np.arange(0.0,2,0.01)
+y = np.sin(2* np.pi*x)
+
+plt.plot(x,y)
+plt.grid(True)
+plt.show()
+
+data = pd.DataFrame({'x':x,'y':y})
+```
+
+A pandas dataframe can also be used within R.
+
+```{r}
+library(ggplot2)
+ggplot(py$data,aes(x,y))+ geom_line(col='blue')
+
+```
+
+
+## Stan
+
+The following is a Bayesian inference procedure in Stan to infer the bias of a coin from data
+
+```{r,warning=FALSE,message=FALSE}
+library(rstan)
+
+
+set.seed(0)
+N <- 100 # Number of observations
+y <- rbinom(N ,1,prob=0.8) ##Simulate N obs from a biased coin
+dataList <- list(y=y,N=N) 
+
+```
+
+
+```{stan output.var= "coin"}
+// The input data is a vector 'y' of length 'N'.
+data {
+  int<lower=0> N;
+  int y[N];
+}
+
+// The parameters accepted by the model. Our model
+// accepts one parameters 'theta' to be estimated.
+parameters {
+  real<lower=0,upper=1> theta;
+}
+
+// The model to be estimated. We model the output
+// 'y' to be normally distributed with mean 'mu'
+// and standard deviation 'sigma'.
+model {
+  theta ~ beta(1,1); // Weak prior
+  y ~ bernoulli(theta);
+}
+
+```
+
+Now generate a posterior
+```{r}
+###Use multiple cores if available
+options(mc.cores = parallel::detectCores()-1)
+
+
+# Generate posterior sample:
+stanFit <- sampling( object=coin , 
+                     data = dataList , 
+                     chains = 3 ,
+                     iter = 1000 , 
+                     warmup = 200 , 
+                     thin = 1 )
+```
+
+
+Plot the posterior
+
+```{r}
+
+stan_dens(stanFit)
+
+```
+
+
+
 
 
 
