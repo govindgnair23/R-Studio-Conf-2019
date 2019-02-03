@@ -14,6 +14,11 @@ This is a notebook summarizing what I learned at the R Studio Conference 2019. S
 
 Before stating make sure the following packages have been installed:
 1) reprex
+2) tidyselect
+3) dplyr
+4) ggplot2
+5) sunburstR
+6) gganimate
 
 ```{r, echo=FALSE,warning=FALSE}
 library(reprex)
@@ -191,7 +196,7 @@ gives_warning("NaNs produced"))
 R Studio 1.2 allows incorporation of SQL, Python , RCPP, Stan etc seamlessly into your workflow. The reticulate package allows you to use Python within R Studio.
 
 ### Python
-Note the bit below requires R Studio 1.2 and python's Anaconda installation.
+Note the bit below requires R Studio 1.2 and python's Anaconda installation. Also you might encounter the issue described [here](https://stackoverflow.com/questions/50085788/qt-platform-plugin-issue-rstudio) and will have to fix by adding the appropriate path to the environment variable
 
 ```{r}
 library(reticulate)
@@ -200,6 +205,9 @@ use_condaenv("r-reticulate")
 ```
 
 ```{python}
+
+import os
+os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = 'C:/Users/learningmachine/AppData/Local/Continuum/anaconda3/Library/plugins/platforms'
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -224,13 +232,13 @@ ggplot(py$data,aes(x,y))+ geom_line(col='blue')
 ```
 
 
-## Stan
+### Stan
 
 The following is a Bayesian inference procedure in Stan to infer the bias of a coin from data
 
 ```{r,warning=FALSE,message=FALSE}
 library(rstan)
-
+rstan_options(autowrite=TRUE)
 
 set.seed(0)
 N <- 100 # Number of observations
@@ -270,12 +278,15 @@ options(mc.cores = parallel::detectCores()-1)
 
 
 # Generate posterior sample:
+
+if(!exists('stanFit')){
 stanFit <- sampling( object=coin , 
                      data = dataList , 
                      chains = 3 ,
                      iter = 1000 , 
                      warmup = 200 , 
                      thin = 1 )
+}
 ```
 
 
@@ -288,10 +299,73 @@ stan_dens(stanFit)
 ```
 
 
+## gganimate
+Package for animated graphics which extends ggplot2. Additional dependencies will have to be installed.
+
+```{r}
+library(gapminder)
+library(gganimate)
+
+
+p <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+  transition_time(year) +
+  ease_aes('linear')
+
+animate(p)
+
+```
+
+## rayshader
+
+This is possibly the coolest package ever. According to the documentation:
+
+*rayshader uses a combination of raytracing, spherical texture mapping, lambertian reflectance, and ambient occlusion to produce hillshades of elevation matrices. Includes water detection and layering functions, programmable color palette generation, several built-in textures, 2D and 3D plotting options, and the ability to export 3D maps to a 3D printable format.*
+
+```{r}
+library(rayshader)
+
+montereybay %>%
+sphere_shade(texture="imhof2") %>%
+plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof2",
+waterlinecolor="white", waterlinealpha=0.5)
+
+
+```
 
 
 
 
 
+## Miscellaneous
 
+### Sunburst Charts
+
+Pretty cool visualization for representing hierarchical data using concentric circles.
+
+```{r}
+library(sunburstR)
+sequences <- read.csv(
+  system.file("examples/visit-sequences.csv",package="sunburstR")
+  ,header=F
+  ,stringsAsFactors = FALSE
+)
+
+sunburst(sequences)
+```
+
+
+
+
+## Other useful/interesting resources
+
+1. Best practices for naming files: <https://speakerdeck.com/jennybc/how-to-name-files?slide=27>
+2. mlflow for tracking ML experiments,sharing  and deploying : <https://www.mlflow.org/docs/latest/tutorial.html>
+3. All the risk calculators  at <http://riskcalc.org/> were built by Cleveland Clinic using Shiny
 
