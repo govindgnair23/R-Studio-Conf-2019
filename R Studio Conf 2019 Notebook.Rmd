@@ -299,6 +299,227 @@ stan_dens(stanFit)
 ```
 
 
+
+## Time Series in Tidyverse
+
+Tidy and Transform the data using the **tsibble** package and perform modelling/forecasting using **fable**.
+tsibble is a time series version of a tibble/dataframe.
+
+```{r , message=FALSE}
+library(tidyr)
+library(tsibble)
+library(lubridate)
+```
+
+We can use the EuStockMarkets data available in base R which is a ts object.
+
+```{r}
+
+data("EuStockMarkets")
+
+```
+
+as_tibble can easily convert this into a tsibble in a long format. Here the index  represents time and key identifies the variable that defines the series. Here each stock index ha a unique time stamp.
+
+
+```{r}
+eu_ts <- as_tsibble(EuStockMarkets)
+print(eu_ts)
+
+```
+
+Given the index in seconds, the tsibble expects an entry for each second, so the index should be converted to day.
+
+```{r}
+eu_ts2 <-  eu_ts %>%
+            mutate(index = as.Date(index))
+print(eu_ts2)
+```
+
+One can also calculate the average price of a week or month as follows.
+
+```{r}
+eu_ts %>%
+    index_by(Month = floor_date(index,'month'))%>%
+        group_by(key)%>%
+            summarize(Price =  mean(value))%>% head()
+
+```
+
+We can also check if there are gaps in the time series as follows.
+
+```{r}
+has_gaps(eu_ts2)
+
+```
+
+
+
+You can get a 30 day rolling average of the process as follows. Note that the first 29 observations of the rolling mean will be NA.
+
+```{r}
+
+eu_ts3 <-  eu_ts2 %>%
+            group_by(key) %>%
+              mutate(avg_30day = slide_dbl(Price,~mean(.,na.rm = TRUE),.size=30))
+
+print(eu_ts3 %>% filter_index("1991-08-01"~"1991-09-01") )
+
+```
+
+
+Tsibble works well with ggplot2.
+
+```{r}
+library(ggplot2)
+ggplot(eu_ts2,aes(x=Date,y=Price)) + geom_line()+
+  facet_wrap(.~key,ncol=1)
+```
+
+Forecasting can be done using the fable package which is a tidy implementation of the classic forecast package by Rob Hyndman. This package is being developed by Hyndman's student Earo Wang and is currently not available on CRAN
+
+## Model representation using Broom
+
+Use tidy() to summarize information about models
+Use glance() to report goodness of fit metrics
+Use augment() to add information about observations
+
+Produces outputs in a simple tibble
+
+
+The code below shows what we typically get when building a model
+```{r, warnings= FALSE,message=FALSE}
+attach(mtcars)
+library(broom)
+ols_fit <- lm(hp~ mpg + cyl, mtcars)
+summary(ols_fit)
+
+
+```
+
+Using tidy from the broom package we get:
+
+```{r}
+tidy(ols_fit)
+
+
+```
+
+Using glance
+
+```{r}
+glance(ols_fit)
+```
+
+
+Using augment gives information about each observation in the training data
+
+```{r}
+augment(ols_fit)
+```
+
+
+
+To compare multiple models on goodness of fit:
+```{r}
+library(purrr)
+
+fits <- list( fit1 = lm(hp~cyl,mtcars),
+              fit2 = lm(hp ~ cyl +mpg, mtcars),
+              fit3 = lm(hp~. , mtcars))
+
+map_df(fits,glance,.id = "model") %>% arrange(AIC)
+
+
+```
+
+
+A more realisitic appication for broom are cases where you want to bootstrap the parameter estimates of a model
+
+Consider the model $$mpg = \frac{k}{wt} + b + \epsilon, \sim Normal(0,\sigma^2)$$
+
+
+To estimate the bootstrapped estimates, you can do the following
+
+```{r}
+library(rsample)
+boots <- bootstraps(mtcars,times=100)
+
+```
+
+Function to fit non linear least squares
+
+```{r}
+fit_nls_on_bootstrap <- function(split) {
+  nls(
+    mpg ~ k/wt + b,
+    analysis(split),
+    start = list(k=1,b=0)
+  )
+}
+
+```
+Bootstrap as follows:
+
+```{r}
+boot_fits <- boots %>%
+              mutate(fit = map(splits,fit_nls_on_bootstrap),
+                     coef_info = map(fit,tidy))
+
+head(boot_fits)
+
+
+```
+
+Get bootstrapped coefficients
+
+```{r}
+
+boot_coefs <- boot_fits %>%
+                unnest(coef_info)
+
+head(boot_coefs)
+
+
+```
+
+Plot bootstrapped estimates as follows
+
+```{r}
+
+p <- ggplot(boot_coefs,aes(estimate))+
+      geom_histogram(binwidth = 2) + facet_wrap(~ term,scales='free')+
+        labs(title = "Sampling distribution of k and b",
+             y = "Count",
+             x = "Value" )
+
+
+
+p
+```
+
+
+We can also plot the bootstrapped predictions as follows
+
+```{r}
+
+boot_aug <- boot_fits %>%
+              mutate(augmented = map(fit,augment))%>%
+                unnest(augmented)
+
+
+ggplot(boot_aug,aes(wt,mpg))+
+  geom_point()+
+    geom_line(aes(y = .fitted,group =id),alpha =0.2)
+
+```
+
+
+
+
+
+
+
 ## gganimate
 Package for animated graphics which extends ggplot2. Additional dependencies will have to be installed.
 
