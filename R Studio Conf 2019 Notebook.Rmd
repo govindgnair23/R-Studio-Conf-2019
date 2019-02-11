@@ -474,7 +474,11 @@ head(boot_fits)
 Get bootstrapped coefficients
 
 ```{r}
+library(resample)
+library(tidyr)
 
+data("mtcars")
+mtcars_bs <- bootstraps(mtcars,times=20)
 boot_coefs <- boot_fits %>%
                 unnest(coef_info)
 
@@ -516,10 +520,6 @@ ggplot(boot_aug,aes(wt,mpg))+
 
 
 
-
-
-
-
 ## gganimate
 Package for animated graphics which extends ggplot2. Additional dependencies will have to be installed.
 
@@ -542,6 +542,75 @@ p <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
 animate(p)
 
 ```
+
+
+## Hypothetical Outcome Plots
+
+Hypothetical outcome plots provide an alterntative way to visualize uncertainty by animating a finite set of individul draws rather than producing a static representation of distributions. 
+
+Load required packages.
+
+```{r}
+library(rsample)
+library(purrr)
+library(ggplot2)
+library(gganimate)
+library(transformr)
+```
+
+
+
+
+
+The plot below uses bootstrapped samples to visualize uncertainity in the trend line. 
+```{r ,message=FALSE, warning= FALSE}
+attach(mtcars)
+
+
+#Draw bootstrap samples
+
+mtcars_bs <- bootstraps(mtcars,times=20)
+
+mtcars_bs_df <- map_df(mtcars_bs$splits, function(x){
+                        return(as.data.frame(x))
+                        })
+
+mtcars_bs_df$id <- rep(c(1:20),each=nrow(mtcars))
+
+
+mtcars %>% 
+  ggplot(aes(disp,mpg))+
+    geom_point()+ 
+      geom_smooth(
+        data = mtcars_bs_df,
+        aes(group =id),
+        se = FALSE,
+        alpha = 0.6
+      )
+    
+
+
+```
+
+
+The same can be represented using a hypothetical outcome plot as follows
+
+
+```{r, message= FALSE, include= FALSE}
+
+
+p <- mtcars_bs_df %>%
+      ggplot(aes(disp,mpg))+
+       geom_smooth(aes(group =id),se=FALSE,alpha=0.6)+
+        geom_point(data=mtcars)+
+          transition_states(id)
+    
+
+animate(p)
+
+```
+
+
 
 ## rayshader
 
