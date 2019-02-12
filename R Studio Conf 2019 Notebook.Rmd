@@ -298,6 +298,115 @@ stan_dens(stanFit)
 
 ```
 
+##  Parsnip - A tidy model interface
+
+```{r , message=FALSE,warning=FALSE}
+library(parsnip)
+library(tidymodels)
+library(glmnet)
+library(randomForest)
+
+```
+
+
+Parsnip is tidy version of the popular caret package being developed by Max Kuhn (who also devleoped caret).This package creates a unified interface to models, organizes them by model type (e.g. Logitic regression, splines etc)and generalizes how to fit them.
+
+
+First create a model specificaiton
+
+
+```{r pressure, echo=FALSE}
+reg_model <- linear_reg(penalty =0.01)
+reg_model
+
+
+```
+
+The computation engine can be one of  **lm**, **glmnet**,**stan**,**spark** or **keras**. Parsnip can translate this general syntax to the model's argument.
+
+```{r}
+
+reg_model %>%
+  set_engine("glmnet")%>%
+    translate()
+
+
+
+```
+
+Note that data is not required for the model specification. Further although glmnet requires the predictors and target to be provided as X,y matrices , parsnip allows you to use a formula.
+
+```{r}
+reg_model %>%
+  set_engine("glmnet")%>%
+    fit(mpg ~ .,data = mtcars)
+
+```
+
+The whole sequence of steps from specification to prediction can be done as follows
+
+```{r}
+linear_reg(penalty =0.01) %>%
+  set_engine("glmnet") %>%
+    fit(mpg~.,dat =mtcars %>% slice(1:29)) %>% # train set
+      predict(new_data = mtcars %>% slice(30:32)) #test set
+
+
+```
+
+
+If we want to fit the model using multiple penalty values:
+
+```{r}
+
+preds <- 
+  linear_reg() %>%
+    set_engine("glmnet")%>%
+      fit(mpg ~. , data = mtcars %>% slice(1:29))%>%
+        multi_predict(new_data = mtcars %>% slice(30:32))
+
+
+print(preds)
+```
+
+This produces a list of dataframes where each list contains predictions for all penalty values considered.
+To obtain the first 5 predictions for the second data point:
+
+```{r}
+preds %>% pull(.pred) %>% pluck(2) %>% slice(1:5)
+
+```
+
+
+In the cases of models like random forest where certain data dependant parameters like **mtry** need to be specified,
+the model can be specified as follows:
+
+
+```{r}
+
+mod <- rand_forest(trees= 1000, mtry =floor(.preds() * 0.75)) %>%
+        set_engine("randomForest")
+
+mod %>% translate()
+
+
+```
+
+Fit the model.
+
+```{r}
+
+mod %>% fit(mpg ~ ., data = mtcars)
+
+```
+
+As you can see, the number of predictors used is 75 % of the number of predictors in the data.
+
+```{r}
+floor((ncol(mtcars) - 1) *0.75)
+
+```
+
 
 
 ## Time Series in Tidyverse
