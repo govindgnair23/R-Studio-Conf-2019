@@ -1,7 +1,7 @@
 ---
 title: "R Studio Conference 2019, Austin"
 author: "Govind Nair"
-date: "2/2/2019"
+date: "March 2, 2019"
 output: html_document
 ---
 
@@ -9,27 +9,20 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-This is a notebook summarizing what I learned at the R Studio Conference 2019. Snippets of code and links to further resources have also been provided.I am restricting the content here to what is relevant to us at Key given the extent to which we use R. Links to all the talks and slide decks,inlcuding talks on how to use R in production at scale are available at <https://github.com/kbroman/RStudioConf2019Slides>
+This is a notebook summarizing what I learned at the R Studio Conference 2019 Links to all the talks and slide decks,including talks on how to use R in production at scale are available at <https://github.com/kbroman/RStudioConf2019Slides>
 
 
-Before stating make sure the following packages have been installed:
-1) reprex
-2) tidyselect
-3) dplyr
-4) ggplot2
-5) sunburstR
-6) gganimate
-
-```{r, echo=FALSE,warning=FALSE}
-library(reprex)
-```
-
-
+Make sure the libraries being used in each section are installed.
 
 
 ## Reproducible Examples with reprex
 
 The reprex package allows you to create a minimal reproducible example that you can share if you are reporting an issue on Github or asking a question on stack overflow. Running the code chunk below after uncommenting will create a new web page with the code and the results that can be shared with others.
+
+```{r, echo=FALSE,warning=FALSE}
+library(reprex)
+```
+
 
 ```{r,echo=TRUE, results= 'hide'}
 
@@ -55,7 +48,7 @@ xf <- factor(x)
 xf
 ```
 
-Converting this  factor back to numeric produces the following odd result
+Converting this factor back to numeric produces the following odd result
 
 
 ```{r}
@@ -63,7 +56,7 @@ x <- as.numeric(xf)
 x
 ```
 
-The right way to catty out this conversion is as follows
+The right way to carry out this conversion is as follows
 ```{r}
 x <- as.numeric(as.character(xf))
 x
@@ -118,7 +111,7 @@ table(ratings1)
 
 ```
 
-Recoding the levels of the factors are also straighforward.
+Recoding the levels of the factors are also straightforward.
 
 ```{r}
 ratings1 <- fct_recode(ratings1,Poor='Low',Fair ='Medium',Good = 'High')
@@ -165,7 +158,7 @@ The testthat package provides functionality that is essential to software testin
 ```{r}
 library(testthat)
 
-#Check for equality within numerical toelrance
+#Check for equality within numerical tolerance
 expect_that(10,equals(10+1e-7))
 ###Check for exact equality - Throws an error
 #expect_that(2*5, is_identical_to(10 + 1e-7))
@@ -309,10 +302,10 @@ library(randomForest)
 ```
 
 
-Parsnip is tidy version of the popular caret package being developed by Max Kuhn (who also devleoped caret).This package creates a unified interface to models, organizes them by model type (e.g. Logitic regression, splines etc)and generalizes how to fit them.
+Parsnip is tidy version of the popular caret package being developed by Max Kuhn (who also developed caret).This package creates a unified interface to models, organizes them by model type (e.g. Logistic regression, splines etc)and generalizes how to fit them.
 
 
-First create a model specificaiton
+First create a model specification
 
 
 ```{r pressure, echo=FALSE}
@@ -378,8 +371,7 @@ preds %>% pull(.pred) %>% pluck(2) %>% slice(1:5)
 ```
 
 
-In the cases of models like random forest where certain data dependant parameters like **mtry** need to be specified,
-the model can be specified as follows:
+In the cases of models like random forest where certain data dependent parameters like **mtry** need to be specified,the model can be specified as follows:
 
 
 ```{r}
@@ -470,7 +462,7 @@ You can get a 30 day rolling average of the process as follows. Note that the fi
 
 eu_ts3 <-  eu_ts2 %>%
             group_by(key) %>%
-              mutate(avg_30day = slide_dbl(Price,~mean(.,na.rm = TRUE),.size=30))
+              mutate(avg_30day = slide_dbl(value,~mean(.,na.rm = TRUE),.size=30))
 
 print(eu_ts3 %>% filter_index("1991-08-01"~"1991-09-01") )
 
@@ -481,7 +473,7 @@ Tsibble works well with ggplot2.
 
 ```{r}
 library(ggplot2)
-ggplot(eu_ts2,aes(x=Date,y=Price)) + geom_line()+
+ggplot(eu_ts2,aes(x=index,y=value)) + geom_line()+
   facet_wrap(.~key,ncol=1)
 ```
 
@@ -543,7 +535,7 @@ map_df(fits,glance,.id = "model") %>% arrange(AIC)
 ```
 
 
-A more realisitic appication for broom are cases where you want to bootstrap the parameter estimates of a model
+A more realistic application for broom are cases where you want to bootstrap the parameter estimates of a model
 
 Consider the model $$mpg = \frac{k}{wt} + b + \epsilon, \sim Normal(0,\sigma^2)$$
 
@@ -632,34 +624,32 @@ ggplot(boot_aug,aes(wt,mpg))+
 ## gganimate
 Package for animated graphics which extends ggplot2. Additional dependencies will have to be installed.
 
-```{r}
+```{r,message=FALSE}
 library(gapminder)
 library(gganimate)
 
 
-p <- ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
   geom_point(alpha = 0.7, show.legend = FALSE) +
   scale_colour_manual(values = country_colors) +
   scale_size(range = c(2, 12)) +
   scale_x_log10() +
-  facet_wrap(~continent) +
   # Here comes the gganimate specific bits
   labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
   transition_time(year) +
   ease_aes('linear')
 
-animate(p)
 
 ```
 
 
 ## Hypothetical Outcome Plots
 
-Hypothetical outcome plots provide an alterntative way to visualize uncertainty by animating a finite set of individul draws rather than producing a static representation of distributions. 
+Hypothetical outcome plots provide an alternative way to visualize uncertainty by animating a finite set of individual draws rather than producing a static representation of distributions. 
 
 Load required packages.
 
-```{r}
+```{r ,message=FALSE}
 library(rsample)
 library(purrr)
 library(ggplot2)
@@ -669,9 +659,7 @@ library(transformr)
 
 
 
-
-
-The plot below uses bootstrapped samples to visualize uncertainity in the trend line. 
+The plot below uses bootstrapped samples to visualize uncertainty in the trend line. 
 ```{r ,message=FALSE, warning= FALSE}
 attach(mtcars)
 
@@ -705,38 +693,235 @@ mtcars %>%
 The same can be represented using a hypothetical outcome plot as follows
 
 
-```{r, message= FALSE, include= FALSE}
+```{r, message= FALSE}
 
 
-p <- mtcars_bs_df %>%
-      ggplot(aes(disp,mpg))+
-       geom_smooth(aes(group =id),se=FALSE,alpha=0.6)+
-        geom_point(data=mtcars)+
-          transition_states(id)
-    
-
-animate(p)
+mtcars_bs_df %>%
+  ggplot(aes(disp,mpg))+
+    geom_smooth(aes(group =id),se=FALSE,alpha=0.6)+
+      geom_point(data=mtcars)+
+        transition_states(id)
 
 ```
 
 
 
-## rayshader
+## Datapasta
 
-This is possibly the coolest package ever. According to the documentation:
+If you want to quickly copy some sample data from excel or SQL into R, you often have to convert it into csv or excel file and then import it or type it manually. Datapasta is an R Studio add in that provides a much easier alternative.
 
-*rayshader uses a combination of raytracing, spherical texture mapping, lambertian reflectance, and ambient occlusion to produce hillshades of elevation matrices. Includes water detection and layering functions, programmable color palette generation, several built-in textures, 2D and 3D plotting options, and the ability to export 3D maps to a 3D printable format.*
+After installing the package 'datapasta' , simply copy the table from an excel file,  go to add ins and select the appropriate option. 
+
+Here, I simply copied a table from excel using 'Ctrl+C' and then selected 'Paste as data.frame' from the add ins dropdown.
 
 ```{r}
-library(rayshader)
-
-montereybay %>%
-sphere_shade(texture="imhof2") %>%
-plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof2",
-waterlinecolor="white", waterlinealpha=0.5)
+data.frame(stringsAsFactors=FALSE,
+        Name = c("A", "B", "C", "D", "E"),
+       Marks = c(87L, 35L, 76L, 34L, 86L)
+)
 
 
 ```
+
+## vctrs
+
+This is another package from Hadley Wickham designed to make sure that outputs from functions are predictable.
+
+
+Sometimes, R does not behave predictable. For instance when combining two factors..
+```{r}
+c(factor("a"),factor("b"))
+
+```
+
+Also..
+```{r}
+today <- as.Date('2019-02-23')
+tomorrow <- as.POSIXct("2019-02-23 12:00",tz = "America/Chicago")
+
+c(today,tomorrow)
+
+```
+
+Also..
+```{r}
+
+c(NULL,tomorrow)
+
+```
+
+The vctrs package formalizes the relationships between various datatypes and requires the user to be more explicit when combining different datatypes.
+
+To summarize:
+ Logical --> Integer --> Double
+ Date --> Date-time
+ Factor -->Character
+ Ordered --> Character
+ 
+```{r}
+library(vctrs)
+
+```
+ 
+ 
+When coercing to character , it is stricter than base R. vec_c below would throw an error
+
+```{r}
+c(1.5,"a")
+#vec_c(1.5,"a")
+```
+
+Instead you have to be explicit..
+```{r}
+vec_c(1.5,"x",.ptype = character())
+```
+
+Unlike in base R, the following works..
+```{r}
+vec_c(factor("a"),factor("b"))
+```
+Note the order affects the levels..
+
+```{r}
+vec_c(factor("b"),factor("a"))
+```
+
+Similarly when concatenating a factor and an ordered factor...
+```{r}
+c(factor("a"),ordered("b"))
+```
+The first call below would throw an error..
+
+```{r}
+#vec_c(factor("a"),ordered("b"))
+vec_c(factor("a"),ordered("b"),.ptype = character())
+```
+
+The date problem does not occur here..
+
+```{r}
+vec_c(today,tomorrow)
+```
+
+Disparate datatypes can be combined into a list
+
+```{r}
+vec_c(today,factor("a"),.ptype=list())
+```
+
+
+## Tidy Evaluation
+
+A tool for metaprogramming. This becomes important when you do not know the names of an object in advance and you want to build a tidyverse pipeline which operates on such objects. This is often the case when you have to operate on user inputs, say in a shiny application where you have to make indirect references with column names stored in variables or passed as function arguments.
+
+It is tidy evaluation that really allows you to use column names below without using quotes.
+
+```{r}
+attach(starwars)
+
+starwars %>%
+  filter(homeworld == "Tatooine")%>%
+    arrange(height)%>%
+      select(name,ends_with("color"))
+
+
+```
+
+
+To evaluate an expression, the interpreter searches the environment for name-value bindings. In tidy eval, the expression is modified or the chain of searched environments is modified. This is what allows you to use unquoted variable names and work inside a dataframe. This is also refereed to as **non-standard evaluation**.
+
+Tidy eval can be implemented in the following ways..
+
+1) Using '...'
+
+
+```{r, message=FALSE}
+attach(mtcars)
+
+measure_hp <- function(df,...){
+  df %>%
+    group_by(...)%>%
+      summarize(avg_hp = mean(hp,na.rm=TRUE))}
+
+measure_hp(mtcars,gear)
+
+  
+
+```
+
+
+2) Using enquo and !!(called 'bang!bang!' operator)
+
+```{r}
+measure<- function(df,group_var,summary_var){
+  group_var <- enquo(group_var) #Effectively quotes the variable
+  summary_var <- enquo(summary_var)
+  
+  df %>%
+    group_by(!!group_var)%>%
+      summarize(avg_hp = mean(!!summary_var,na.rm=TRUE))}
+
+measure(mtcars,gear,hp)
+
+
+```
+
+
+
+If you need to manipulate user input that is passed as characters,you can do the following..
+
+```{r}
+library(rlang)
+group_var <- 'gear'
+summary_var <- 'hp'
+
+measure(mtcars,!!rlang::sym(group_var),!!rlang::sym(summary_var))
+```
+
+
+
+### Action and Selection Verbs
+
+dplyr verbs comes in two flavors - **action** and **selection**. **select** is a *selection* verb while verbs like mutate,group_by and transmute are action verbs.
+
+Action verbs created new vectors and modify the dataframe.Selection verbs look up the position of the columns in the dataframe and re-organizes the dataframe.
+
+Selection verbs are context aware and know about current variables.
+```{r}
+
+starwars %>% select(c(1:height))
+starwars %>% select(1:height)
+starwars %>% select(-1,-height)
+
+
+```
+
+
+
+You can also use selection helpers as follows..
+
+```{r}
+
+starwars %>% select(ends_with("color")) %>% head()
+starwars %>% select(dplyr::matches("^[nm]a")) %>% head()
+starwars %>% select(10,everything()) %>% head()
+
+```
+
+
+group_by is an action verb, it does not work with selection helpers. The code below does not work.
+
+```{r}
+#starwars %>% group_by(ends_with"color")
+
+```
+
+Instead you can use..
+
+```{r}
+starwars %>% group_by_at(vars(ends_with("color"))) %>% summarise(mean_height=mean(height))
+```
+
 
 
 
@@ -760,11 +945,27 @@ sunburst(sequences)
 ```
 
 
+### rayshader
+
+This is possibly the coolest package ever. According to the documentation:
+
+*rayshader uses a combination of raytracing, spherical texture mapping, lambertian reflectance, and ambient occlusion to produce hillshades of elevation matrices. Includes water detection and layering functions, programmable color palette generation, several built-in textures, 2D and 3D plotting options, and the ability to export 3D maps to a 3D printable format.*
+
+```{r}
+library(rayshader)
+
+montereybay %>%
+sphere_shade(texture="imhof2") %>%
+plot_3d(montereybay, zscale=50, water = TRUE, watercolor="imhof2",
+waterlinecolor="white", waterlinealpha=0.5)
+
+
+```
 
 
 ## Other useful/interesting resources
 
-1. Best practices for naming files: <https://speakerdeck.com/jennybc/how-to-name-files?slide=27>
-2. mlflow for tracking ML experiments,sharing  and deploying : <https://www.mlflow.org/docs/latest/tutorial.html>
+1. Best practices for naming files: <link>(https://speakerdeck.com/jennybc/how-to-name-files?slide=27)
+2. mlflow for tracking ML experiments,sharing  and deploying : <link>(https://www.mlflow.org/docs/latest/tutorial.html)
 3. All the risk calculators  at <http://riskcalc.org/> were built by Cleveland Clinic using Shiny
 
