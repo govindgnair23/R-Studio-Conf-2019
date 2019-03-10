@@ -223,73 +223,8 @@ library(ggplot2)
 ggplot(py$data,aes(x,y))+ geom_line(col='blue')
 
 ```
+SImilarly you can embed SQL or Stan code chunks in your markdown document.
 
-
-### Stan
-
-The following is a Bayesian inference procedure in Stan to infer the bias of a coin from data
-
-```{r,warning=FALSE,message=FALSE}
-library(rstan)
-rstan_options(autowrite=TRUE)
-
-set.seed(0)
-N <- 100 # Number of observations
-y <- rbinom(N ,1,prob=0.8) ##Simulate N obs from a biased coin
-dataList <- list(y=y,N=N) 
-
-```
-
-
-```{stan output.var= "coin"}
-// The input data is a vector 'y' of length 'N'.
-data {
-  int<lower=0> N;
-  int y[N];
-}
-
-// The parameters accepted by the model. Our model
-// accepts one parameters 'theta' to be estimated.
-parameters {
-  real<lower=0,upper=1> theta;
-}
-
-// The model to be estimated. We model the output
-// 'y' to be normally distributed with mean 'mu'
-// and standard deviation 'sigma'.
-model {
-  theta ~ beta(1,1); // Weak prior
-  y ~ bernoulli(theta);
-}
-
-```
-
-Now generate a posterior
-```{r}
-###Use multiple cores if available
-options(mc.cores = parallel::detectCores()-1)
-
-
-# Generate posterior sample:
-
-if(!exists('stanFit')){
-stanFit <- sampling( object=coin , 
-                     data = dataList , 
-                     chains = 3 ,
-                     iter = 1000 , 
-                     warmup = 200 , 
-                     thin = 1 )
-}
-```
-
-
-Plot the posterior
-
-```{r}
-
-stan_dens(stanFit)
-
-```
 
 ##  Parsnip - A tidy model interface
 
@@ -398,7 +333,6 @@ As you can see, the number of predictors used is 75 % of the number of predictor
 floor((ncol(mtcars) - 1) *0.75)
 
 ```
-
 
 
 ## Time Series in Tidyverse
@@ -620,11 +554,10 @@ ggplot(boot_aug,aes(wt,mpg))+
 ```
 
 
-
 ## gganimate
 Package for animated graphics which extends ggplot2. Additional dependencies will have to be installed.
 
-```{r,message=FALSE}
+```{r,message=FALSE,eval=FALSE}
 library(gapminder)
 library(gganimate)
 
@@ -641,7 +574,6 @@ ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
 
 
 ```
-
 
 ## Hypothetical Outcome Plots
 
@@ -693,7 +625,7 @@ mtcars %>%
 The same can be represented using a hypothetical outcome plot as follows
 
 
-```{r, message= FALSE}
+```{r, message= FALSE,eval=FALSE}
 
 
 mtcars_bs_df %>%
@@ -828,7 +760,7 @@ starwars %>%
 ```
 
 
-To evaluate an expression, the interpreter searches the environment for name-value bindings. In tidy eval, the expression is modified or the chain of searched environments is modified. This is what allows you to use unquoted variable names and work inside a dataframe. This is also refereed to as **non-standard evaluation**.
+To evaluate an expression, the interpreter searches the environment for name-value bindings. In tidy eval, the expression is modified or the chain of searched environments is modified. This is what allows you to use unquoted variable names and work inside a dataframe. This is also referred to as **non-standard evaluation**.
 
 Tidy eval can be implemented in the following ways..
 
@@ -868,7 +800,7 @@ measure(mtcars,gear,hp)
 
 
 
-If you need to manipulate user input that is passed as characters,you can do the following..
+If you need to manipulate user input that is passed as character strings,you can do the following..
 
 ```{r}
 library(rlang)
@@ -877,6 +809,7 @@ summary_var <- 'hp'
 
 measure(mtcars,!!rlang::sym(group_var),!!rlang::sym(summary_var))
 ```
+
 
 
 
@@ -923,10 +856,69 @@ starwars %>% group_by_at(vars(ends_with("color"))) %>% summarise(mean_height=mea
 ```
 
 
+##profviz
+
+profviz can be used to profile your code, identify modules that slow down the program and take corrective action.
+
+```{r}
+library(profvis)
+#profvis::profvis(mtcars %>% lm(mpg ~ wt +cyl,.))
+```
+
+## Using Spark to scale out your jobs
+
+Spark allows you to leverage compute from mutliple machines by distributing computations across multiple machines. The sparklyr package allows you to leverage the power of Spark through R.
+
+Although we connect to spark running on the local machine below, we can easily connect to a cluster provided by a cloud provider. Make sure Java is installed in a directory which does not have spaces or special cahracters. This link may also be useful <https://forum.unity.com/threads/could-not-reserve-enough-space-for-object-heap-resolved.88119/>(link)
+
+```{r}
+library(DBI)
+library(dplyr)
+library(sparklyr)                                   #R Interface to Apache Spark
+#spark_install()                                    #Install Apache Spark
+
+#Add path to java to environment variables
+#Sys.setenv(JAVA_HOME = 'C:/Users/learningmachine/Java/jre1.8.0_201')
 
 
+sc <- spark_connect(master = 'local')               #Connect to local cluster
+##Make sure you have the mtcars.csv file in your working directory
+cars_tbl <- spark_read_csv(sc,"cars","mtcars.csv")     #Read data into spark
+
+summarize(cars_tbl, n =n())                         #Count records with dplyr
+dbGetQuery(sc,"SELECT count(*) FROM cars")          # COunt records with DBI
+```
+
+Perform linear regression
+
+```{r}
+ml_linear_regression(cars_tbl,mpg~wt+cyl)
+```
+
+You can also define a pipeline and run it on a spark cluster and save it to disk.
+
+```{r}
+pipeline <- ml_pipeline(sc) %>%                #Define Spark pipleine
+              ft_r_formula(mpg~wt + cyl)%>%    #Add formula translation
+                ml_linear_regression()         #Add model to pipeline
+
+fitted <- ml_fit(pipeline,cars_tbl)
+fitted
+#ml_save(fitted,"mtcars_model",overwrite = TRUE)
+
+              
+```
+
+The sparklyr output of a saved Spark ML Pipeline object is in Scala code, which means that the code can be added to the scheduled Spark ML jobs, and without any dependencies in R.
 
 
+## Shiny
+
+Some resources worth exploring on shiny and included in the link shared at the beginning of the document are 
+
+1) Modules: How to compartmentalize your shiny application into modules for easier maintenance and concurrent development 
+
+2) Reactlog 2.0: Library built in Javascript that allows for easier debugging by visualizing reactive dependencies in the app. Th goto tool for reactivity debugging
 ## Miscellaneous
 
 ### Sunburst Charts
@@ -944,14 +936,15 @@ sequences <- read.csv(
 sunburst(sequences)
 ```
 
-
 ### rayshader
 
-This is possibly the coolest package ever. According to the documentation:
+This is  a really cool package. According to the documentation:
 
 *rayshader uses a combination of raytracing, spherical texture mapping, lambertian reflectance, and ambient occlusion to produce hillshades of elevation matrices. Includes water detection and layering functions, programmable color palette generation, several built-in textures, 2D and 3D plotting options, and the ability to export 3D maps to a 3D printable format.*
 
-```{r}
+Try running the code below to see some really cool 3d visualizations.
+
+```{r,eval = FALSE}
 library(rayshader)
 
 montereybay %>%
@@ -966,6 +959,8 @@ waterlinecolor="white", waterlinealpha=0.5)
 ## Other useful/interesting resources
 
 1. Best practices for naming files: <link>(https://speakerdeck.com/jennybc/how-to-name-files?slide=27)
+
 2. mlflow for tracking ML experiments,sharing  and deploying : <link>(https://www.mlflow.org/docs/latest/tutorial.html)
+
 3. All the risk calculators  at <http://riskcalc.org/> were built by Cleveland Clinic using Shiny
 
