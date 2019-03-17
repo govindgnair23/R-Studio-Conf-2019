@@ -1,7 +1,7 @@
 ---
 title: "R Studio Conference 2019, Austin"
 author: "Govind Nair"
-date: "March 2, 2019"
+date: "March 17, 2019"
 output: html_document
 ---
 
@@ -125,7 +125,7 @@ Plenty of other useful functions are available in the forcats package.
 
 The **testthat** and **assertthat** packages allows us to code defensively. This is typically best practice in software engineering and makes debugging much easier.
 
-For instance if a function is designed to accept a scalar (i.e. a vector of length 1), you may want to
+For instance if a function is designed to accept a scalar (i.e. a vector of length 1), you may want 
 the function to throw an error if a vector is passed into the function, so that you can adjust the function appropriately.
 
 ```{r}
@@ -155,7 +155,7 @@ see_if(is.numeric(y), length(y) == 1)
 
 The testthat package provides functionality that is essential to software testing. This is useful if you are building packages or writing code that is meant to be used in production
 
-```{r}
+```{r ,warning=FALSE}
 library(testthat)
 
 #Check for equality within numerical tolerance
@@ -557,7 +557,7 @@ ggplot(boot_aug,aes(wt,mpg))+
 ## gganimate
 Package for animated graphics which extends ggplot2. Additional dependencies will have to be installed.
 
-```{r,message=FALSE,eval=FALSE}
+```{r,message=FALSE}
 library(gapminder)
 library(gganimate)
 
@@ -625,7 +625,7 @@ mtcars %>%
 The same can be represented using a hypothetical outcome plot as follows
 
 
-```{r, message= FALSE,eval=FALSE}
+```{r, message= FALSE}
 
 
 mtcars_bs_df %>%
@@ -869,16 +869,16 @@ library(profvis)
 
 Spark allows you to leverage compute from mutliple machines by distributing computations across multiple machines. The sparklyr package allows you to leverage the power of Spark through R.
 
-Although we connect to spark running on the local machine below, we can easily connect to a cluster provided by a cloud provider. Make sure Java is installed in a directory which does not have spaces or special cahracters. This link may also be useful <https://forum.unity.com/threads/could-not-reserve-enough-space-for-object-heap-resolved.88119/>(link)
+Although we connect to spark running on the local machine below, we can easily connect to a cluster provided by a cloud provider. Make sure Java is installed in a directory which does not have spaces or special characters. This link may also be useful <https://forum.unity.com/threads/could-not-reserve-enough-space-for-object-heap-resolved.88119/>(link)
 
-```{r}
+```{r , warning=FALSE}
 library(DBI)
 library(dplyr)
 library(sparklyr)                                   #R Interface to Apache Spark
 #spark_install()                                    #Install Apache Spark
 
 #Add path to java to environment variables
-#Sys.setenv(JAVA_HOME = 'C:/Users/learningmachine/Java/jre1.8.0_201')
+Sys.setenv(JAVA_HOME = 'C:/Users/learningmachine/Java/jre1.8.0_201')
 
 
 sc <- spark_connect(master = 'local')               #Connect to local cluster
@@ -910,6 +910,7 @@ fitted
 ```
 
 The sparklyr output of a saved Spark ML Pipeline object is in Scala code, which means that the code can be added to the scheduled Spark ML jobs, and without any dependencies in R.
+
 
 
 ## Shiny
