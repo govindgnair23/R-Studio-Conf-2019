@@ -802,7 +802,7 @@ measure(mtcars,gear,hp)
 
 If you need to manipulate user input that is passed as character strings,you can do the following..
 
-```{r}
+```{r,warning=FALSE,message=FALSE}
 library(rlang)
 group_var <- 'gear'
 summary_var <- 'hp'
@@ -856,7 +856,7 @@ starwars %>% group_by_at(vars(ends_with("color"))) %>% summarise(mean_height=mea
 ```
 
 
-##profviz
+## profviz
 
 profviz can be used to profile your code, identify modules that slow down the program and take corrective action.
 
@@ -869,7 +869,7 @@ library(profvis)
 
 Spark allows you to leverage compute from mutliple machines by distributing computations across multiple machines. The sparklyr package allows you to leverage the power of Spark through R.
 
-Although we connect to spark running on the local machine below, we can easily connect to a cluster provided by a cloud provider. Make sure Java is installed in a directory which does not have spaces or special characters. This link may also be useful <https://forum.unity.com/threads/could-not-reserve-enough-space-for-object-heap-resolved.88119/>(link)
+Although we connect to spark running on the local machine below, we can easily connect to a cluster provided by a cloud provider. Make sure Java is installed in a directory which does not have spaces or special characters. This [link](https://forum.unity.com/threads/could-not-reserve-enough-space-for-object-heap-resolved.88119/) may also be useful 
 
 ```{r , warning=FALSE}
 library(DBI)
@@ -920,6 +920,7 @@ Some resources worth exploring on shiny and included in the link shared at the b
 1) Modules: How to compartmentalize your shiny application into modules for easier maintenance and concurrent development 
 
 2) Reactlog 2.0: Library built in Javascript that allows for easier debugging by visualizing reactive dependencies in the app. Th goto tool for reactivity debugging
+
 ## Miscellaneous
 
 ### Sunburst Charts
@@ -959,9 +960,9 @@ waterlinecolor="white", waterlinealpha=0.5)
 
 ## Other useful/interesting resources
 
-1. Best practices for naming files: <link>(https://speakerdeck.com/jennybc/how-to-name-files?slide=27)
+1. Best practices for naming files: [link](https://speakerdeck.com/jennybc/how-to-name-files?slide=27)
 
-2. mlflow for tracking ML experiments,sharing  and deploying : <link>(https://www.mlflow.org/docs/latest/tutorial.html)
+2. mlflow for tracking ML experiments,sharing  and deploying : [link](https://www.mlflow.org/docs/latest/tutorial.html)
 
 3. All the risk calculators  at <http://riskcalc.org/> were built by Cleveland Clinic using Shiny
 
